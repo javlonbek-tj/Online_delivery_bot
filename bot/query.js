@@ -7,8 +7,15 @@ const {
   editCategory,
   getAllCategories,
 } = require('./helper/category');
-const { showProduct, addProduct } = require('./helper/product');
-const { addToCartProd } = require('./helper/users');
+const { showProduct, addProduct, deleteProduct, editProduct } = require('./helper/product');
+const {
+  addToCartProd,
+  deleteFromCart,
+  removeCart,
+  unfinishedOrder,
+  changeOrder,
+  showLocation,
+} = require('./helper/users');
 
 bot.on('callback_query', async query => {
   try {
@@ -45,14 +52,40 @@ bot.on('callback_query', async query => {
       }
     }
     if (data.includes('del_product-')) {
-      delete_product(chatId, id[1]);
+      deleteProduct(chatId, id[1]);
     }
 
     if (data.includes('rem_product-')) {
-      delete_product(chatId, id[1], true);
+      deleteProduct(chatId, id[1], true);
     }
     if (data.includes('add_cart-')) {
       addToCartProd(chatId, id[1], id[2]);
+    }
+    if (data.includes('edit_product-')) {
+      editProduct(chatId, id[1]);
+    }
+    if (data.includes('remove_cart-')) {
+      deleteFromCart(chatId, id[1]);
+    }
+    if (data.includes('remove_cart_all')) {
+      removeCart(chatId);
+    }
+    if (data.includes('order_cart')) {
+      unfinishedOrder(chatId);
+    }
+    if (data.includes('success_order-')) {
+      changeOrder(chatId, id[1], 2);
+      return;
+    }
+    if (data.includes('cancel_order-')) {
+      changeOrder(chatId, id[1], 3);
+      return;
+    }
+    if (data.includes('map_order-')) {
+      return showLocation(chatId, id[1]);
+    }
+    if (data.includes('end_order-')) {
+      return changeOrder(chatId, id[1], 4);
     }
 
     id = data.split('_');
@@ -67,6 +100,6 @@ bot.on('callback_query', async query => {
       getAllCategories(chatId);
     }
   } catch (err) {
-    console.log(EvalError);
+    console.log(err);
   }
 });

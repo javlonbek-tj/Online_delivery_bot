@@ -6,9 +6,10 @@ const Order = new Schema(
       type: Schema.Types.ObjectId,
       ref: 'User',
     },
+    orderId: Number,
     products: [
       {
-        product: {
+        productId: {
           type: Schema.Types.ObjectId,
           ref: 'Product',
         },
@@ -27,12 +28,13 @@ const Order = new Schema(
       1 - tekshiruvda
       2 - qabul qilingan
       3 - bekor qilingan
+      4 - yakunlangan
     */
     },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 module.exports = model('Order', Order);

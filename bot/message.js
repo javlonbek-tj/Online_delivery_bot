@@ -1,9 +1,9 @@
 const { bot } = require('./bot');
 const User = require('../model/user');
 const { start, requestContact } = require('./helper/start');
-const { getAllUsers } = require('./helper/users');
+const { getAllUsers, getCart, acceptedOrder } = require('./helper/users');
 const { getAllCategories, newCategory, saveCategory } = require('./helper/category');
-const { addProductNext } = require('./helper/product');
+const { addProductNext, editProductNext } = require('./helper/product');
 
 bot.on('message', async msg => {
   const chatId = msg.from.id;
@@ -25,6 +25,9 @@ bot.on('message', async msg => {
       getAllCategories(chatId, 1);
       return;
     }
+    if (text === 'Savat') {
+      getCart(chatId);
+    }
     if (user.action === 'add_category') {
       newCategory(msg);
     }
@@ -40,6 +43,22 @@ bot.on('message', async msg => {
       } else {
         bot.sendMessage(chatId, 'Mahsulot rasmini oddiy rasm ko`rinish yuklang');
       }
+    }
+    if (user.action.includes('edit_product_') && user.action !== 'edit_product_img') {
+      const action = user.action;
+      const prodId = action.split('_')[3];
+      editProductNext(chatId, text, user.action.split('_')[2], prodId);
+    }
+    if (user.action == 'edit_product_img') {
+      if (msg.photo) {
+        editProductNext(chatId, msg.photo.at(-1).file_id, 'img');
+      } else {
+        bot.sendMessage(chatId, 'Mahsulot rasmini oddiy rasm ko`rinishida yuklang');
+      }
+    }
+
+    if (msg.location && user.action == 'order') {
+      acceptedOrder(chatId, msg.location);
     }
   }
 });
