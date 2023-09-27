@@ -1,8 +1,7 @@
 const { bot } = require('../bot');
 const User = require('../../model/user');
-const { userKeyboard } = require('../menu/keyboard');
+const { userKeyboard, adminKeyboard } = require('../menu/keyboard');
 const Product = require('../../model/product');
-const { showCategory } = require('./category');
 const Order = require('../../model/order');
 const { calculateTotalPrice, generateCartMessage } = require('./utils');
 
@@ -37,20 +36,32 @@ const addToCartProd = async (chatId, prodId, quantity) => {
 
     // Format the "Add to cart" message
     const message =
-      `✅ Product added to cart:\n\n` +
+      `✅ Mahsulot savatga qo'shildi:\n\n` +
       `📖 *${product.title}*\n` +
-      `💸 *Price*: ${product.price} so'm\n` +
-      `📦 *Quantity*: ${quantity}\n` +
-      `💲 *Subtotal*: ${quantity * product.price} so'm`;
+      `💸 *Narxi*: ${product.price} so'm\n` +
+      `📦 *Soni*: ${quantity}\n` +
+      `💲 *Jami*: ${quantity * product.price} so'm`;
 
     // Send the formatted message with Markdown
-    bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
-    setTimeout(() => {
-      showCategory(chatId, product.category);
-    }, 2000);
+    bot.sendMessage(chatId, message, {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: "Savatni ko'rish",
+              callback_data: 'see_cart',
+            },
+            {
+              text: 'Orqaga',
+              callback_data: `category_${product.category}`,
+            },
+          ],
+        ],
+      },
+    });
   } catch (error) {
-    console.error('Error adding product to cart:', error);
-    bot.sendMessage(chatId, '❌ An error occurred while adding the product to the cart. Please try again later.');
+    bot.sendMessage(chatId, "❌ Xatolik sodir bo'ldi. Iltimos qaytadan urinib ko'ring.");
   }
 };
 
@@ -69,11 +80,11 @@ const getCart = async chatId => {
     const mainInlineKeyboard = [
       [
         {
-          text: '🛒 Order',
+          text: '🛒 Buyurtma berish',
           callback_data: 'order_cart',
         },
         {
-          text: '🗑️ Remove Cart',
+          text: '🗑️ Savatni tozalash',
           callback_data: 'remove_cart_all',
         },
       ],
@@ -108,6 +119,7 @@ const unfinishedOrder = async chatId => {
   const products = user.cart.items.map(item => {
     return { quantity: item.quantity, productId: { ...item.productId } };
   });
+  await Order.deleteMany({ status: 0 }); // Delete old unfinished orders
   const order = new Order({
     user: user._id,
     products,
@@ -140,14 +152,6 @@ const unfinishedOrder = async chatId => {
 const acceptedOrder = async (chatId, location) => {
   const user = await User.findOne({ chatId }).lean();
   const admin = await User.findOne({ admin: true }).lean();
-  await User.findByIdAndUpdate(
-    user._id,
-    {
-      ...user,
-      action: 'end_order',
-    },
-    { new: true },
-  );
   const unfinishedOrder = await Order.findOne({
     user: user._id,
     status: 0,
@@ -155,6 +159,14 @@ const acceptedOrder = async (chatId, location) => {
     .populate(['products.productId'])
     .lean();
   if (unfinishedOrder) {
+    await User.findByIdAndUpdate(
+      user._id,
+      {
+        ...user,
+        action: 'accept_order',
+      },
+      { new: true },
+    );
     const lastOrder = await Order.findOne({ status: { $ne: 0 } }).sort({ createdAt: -1 });
     const orderId = lastOrder?.orderId ? Number(lastOrder.orderId) + 1 : 1;
     const order = await Order.findByIdAndUpdate(
@@ -172,7 +184,7 @@ const acceptedOrder = async (chatId, location) => {
     const totalPrice = calculateTotalPrice(order.products);
     const { message } = generateCartMessage(order.products, totalPrice, 'Buyurtmadagi', order);
     await removeCart(chatId);
-    await bot.sendMessage(chatId, `Buyurtmangiz qabul bo'ldi. Tez orada siz bilan bog'lanamiz.\n\n ${message}`, {
+    await bot.sendMessage(chatId, `Buyurtmangiz qabul bo'ldi. Tez orada siz bilan bog'lanamiz.\n\n${message}`, {
       reply_markup: {
         remove_keyboard: true,
       },
@@ -208,9 +220,11 @@ const acceptedOrder = async (chatId, location) => {
 
 const changeOrder = async (chatId, id, status) => {
   const admin = await User.findOne({ chatId }).lean();
-
+  const unfinishedOrder = await Order.findById(id).lean();
+  if (!unfinishedOrder) {
+    return bot.sendMessage(admin.chatId, `Buyurtma topilmadi`);
+  }
   if (admin.admin) {
-    const unfinishedOrder = await Order.findById(id).lean();
     const order = await Order.findByIdAndUpdate(
       unfinishedOrder._id,
       { ...unfinishedOrder, status },
@@ -220,47 +234,71 @@ const changeOrder = async (chatId, id, status) => {
     const { message } = generateCartMessage(order.products, totalPrice, 'Buyurtmadagi', order);
     let msg;
     if (status == 2) {
-      (msg = `Buyurtmangiz qabul qilindi.\n\n ${message}`),
+      await bot.sendMessage(
+        order.user.chatId,
+        `Buyurtmangiz qabul qilindi.\nTez orada mahsulotingiz yetkazib beriladi.`,
         {
           reply_markup: {
             remove_keyboard: true,
           },
-        };
+        },
+      );
+      await bot.sendMessage(
+        admin.chatId,
+        `Yangi buyurtma.\n\nBuyurtmachi: ${order.user.name}\nTelefon raqami: ${order.user.phone}\n\n${message}`,
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: 'Lokatsiyani olish',
+                  callback_data: `map_order-${order._id}`,
+                },
+                {
+                  text: 'Buyurtmani yakunlash',
+                  callback_data: `accept_order-${order._id}`,
+                },
+              ],
+            ],
+          },
+        },
+      );
+      return;
     }
     if (status == 3) {
       msg = `#${order.orderId} raqamli buyurtmangiz bekor qilindi`;
-      await bot.sendMessage(order.user.chatId, msg);
-      await bot.sendMessage(admin.chatId, `#${order.orderId} raqamli buyurtma bekor qilindi`);
-      await Order.findByIdAndDelete(id);
-      return;
-    }
-    if (status == 4) {
-      msg = `#${order.orderId} raqamli buyurtmangiz yakunlandi.`;
-      await bot.sendMessage(order.user.chatId, msg);
-      await bot.sendMessage(admin.chatId, `#${order.orderId} raqamli buyurtma yakunlandi`);
-      await Order.findByIdAndUpdate(id, { ...order, status: 4 });
-      return;
-    }
-    await bot.sendMessage(
-      admin.chatId,
-      `Yangi buyurtma.\n\nBuyurtmachi: ${order.user.name}\nTelefon raqami: ${order.user.phone}\n\n${message}`,
-      {
+      await bot.sendMessage(order.user.chatId, msg, {
         reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text: 'Lokatsiyani olish',
-                callback_data: `map_order-${order._id}`,
-              },
-              {
-                text: 'Buyurtmani yakunlash',
-                callback_data: `end_order-${order._id}`,
-              },
-            ],
-          ],
+          keyboard: userKeyboard,
+          resize_keyboard: true,
         },
-      },
-    );
+      });
+      await bot.sendMessage(admin.chatId, `#${order.orderId} raqamli buyurtma bekor qilindi`, {
+        reply_markup: {
+          keyboard: adminKeyboard,
+          resize_keyboard: true,
+        },
+      });
+      return;
+    }
+    if (status == 4 && admin.action !== 'end_order') {
+      msg = `#${order.orderId} raqamli buyurtmangiz yakunlandi.`;
+      await bot.sendMessage(order.user.chatId, msg, {
+        reply_markup: {
+          keyboard: userKeyboard,
+          resize_keyboard: true,
+        },
+      });
+      await bot.sendMessage(admin.chatId, `#${order.orderId} raqamli buyurtma yakunlandi`, {
+        reply_markup: {
+          keyboard: adminKeyboard,
+          resize_keyboard: true,
+        },
+      });
+      await Order.findByIdAndUpdate(id, { ...order, status: 4 });
+      await User.findByIdAndUpdate(admin._id, { ...order.user, action: 'end_order' });
+      return;
+    }
   } else {
     bot.sendMessage(chatId, 'Sizga ushbu amal mumkin emas');
   }
@@ -270,7 +308,7 @@ const showLocation = async (chatId, _id) => {
   const user = await User.findOne({ chatId }).lean();
   if (user.admin) {
     const order = await Order.findById(_id).lean();
-    const message = `Buyurtma raqami: ${order.orderId}`;
+    const message = `Buyurtma raqami: #${order.orderId}`;
 
     const inline_keyboard = [
       [
@@ -280,7 +318,7 @@ const showLocation = async (chatId, _id) => {
         },
         {
           text: 'Buyurtmani yakunlash',
-          callback_data: `end_order-${order._id}`,
+          callback_data: `accept_order-${order._id}`,
         },
       ],
     ];
@@ -295,6 +333,58 @@ const showLocation = async (chatId, _id) => {
   }
 };
 
+const getOrders = async chatId => {
+  try {
+    const user = await User.findOne({ chatId }).lean();
+    const userOrders = await Order.find({ status: { $in: [1, 2, 3, 4] }, user: user._id }).populate([
+      'user',
+      'products.productId',
+    ]);
+    const allOrders = await Order.find({ status: { $in: [2] } }).populate(['user', 'products.productId']);
+    if (user.admin) {
+      if (allOrders.length === 0) {
+        await bot.sendMessage(chatId, 'Buyurtmalar mavjud emas');
+      } else {
+        for (const order of allOrders) {
+          const totalPrice = calculateTotalPrice(order.products);
+          const { message } = generateCartMessage(order.products, totalPrice, 'Buyurtmadagi', order);
+          const keyboard = {
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: 'Lokatsiyani olish',
+                    callback_data: `map_order-${order._id}`,
+                  },
+                  {
+                    text: 'Buyurtmani yakunlash',
+                    callback_data: `accept_order-${order._id}`,
+                  },
+                ],
+              ],
+            },
+          };
+          const isAcceptedOrder = order.status == 2 ? keyboard : null;
+          await bot.sendMessage(chatId, message, isAcceptedOrder);
+        }
+      }
+    } else {
+      if (userOrders.length === 0) {
+        await bot.sendMessage(chatId, 'Sizda hali buyurtmalar mavjud emas');
+      } else {
+        for (const order of userOrders) {
+          const totalPrice = calculateTotalPrice(order.products);
+          const { message } = generateCartMessage(order.products, totalPrice, 'Buyurtmadagi', order);
+
+          await bot.sendMessage(chatId, message);
+        }
+      }
+    }
+  } catch (e) {
+    console.log(e);
+  }
+};
+
 module.exports = {
   getAllUsers,
   addToCartProd,
@@ -305,4 +395,5 @@ module.exports = {
   acceptedOrder,
   changeOrder,
   showLocation,
+  getOrders,
 };

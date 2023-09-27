@@ -15,6 +15,7 @@ const {
   unfinishedOrder,
   changeOrder,
   showLocation,
+  getCart,
 } = require('./helper/users');
 
 bot.on('callback_query', async query => {
@@ -84,8 +85,11 @@ bot.on('callback_query', async query => {
     if (data.includes('map_order-')) {
       return showLocation(chatId, id[1]);
     }
-    if (data.includes('end_order-')) {
+    if (data.includes('accept_order-')) {
       return changeOrder(chatId, id[1], 4);
+    }
+    if (data.includes('see_cart')) {
+      getCart(chatId);
     }
 
     id = data.split('_');

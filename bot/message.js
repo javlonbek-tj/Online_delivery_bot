@@ -1,7 +1,7 @@
 const { bot } = require('./bot');
 const User = require('../model/user');
 const { start, requestContact } = require('./helper/start');
-const { getAllUsers, getCart, acceptedOrder } = require('./helper/users');
+const { getAllUsers, getCart, acceptedOrder, getOrders } = require('./helper/users');
 const { getAllCategories, newCategory, saveCategory } = require('./helper/category');
 const { addProductNext, editProductNext } = require('./helper/product');
 
@@ -15,7 +15,23 @@ bot.on('message', async msg => {
   }
   if (user) {
     if (user.action === 'request_contact' && !user.phone) {
-      requestContact(msg);
+      if (text) {
+        bot.sendMessage(chatId, "Iltimos, 'Telefon raqamni yuborish' tugmasini bosish orqali ulashing.", {
+          reply_markup: {
+            keyboard: [
+              [
+                {
+                  text: 'Telefon Raqam yuborish',
+                  request_contact: true,
+                },
+              ],
+            ],
+            resize_keyboard: true,
+          },
+        });
+      } else {
+        requestContact(msg);
+      }
     }
     if (text === 'Foydalanuvchilar') {
       getAllUsers(msg);
@@ -27,6 +43,9 @@ bot.on('message', async msg => {
     }
     if (text === 'Savat') {
       getCart(chatId);
+    }
+    if (text === 'Buyurtmalarim' || text === 'Buyurtmalar') {
+      getOrders(chatId);
     }
     if (user.action === 'add_category') {
       newCategory(msg);

@@ -44,6 +44,9 @@ const start = async msg => {
 
 const requestContact = async msg => {
   const chatId = msg.from.id;
+  if (!msg.contact) {
+    bot.sendMessage(chatId, 'Iltimos raqamni "Telefon raqamni yuborish tugmasini" bosing ulashing');
+  }
 
   if (msg.contact.phone_number) {
     const user = await User.findOne({ chatId }).lean();

@@ -7,7 +7,12 @@ const adminKeyboard = [
       text: 'Katalog',
     },
   ],
-  [{ text: 'Savat' }],
+  [
+    { text: 'Savat' },
+    {
+      text: 'Buyurtmalar',
+    },
+  ],
 ];
 
 const userKeyboard = [
@@ -17,6 +22,9 @@ const userKeyboard = [
     },
     {
       text: 'Savat',
+    },
+    {
+      text: 'Buyurtmalarim',
     },
   ],
 ];

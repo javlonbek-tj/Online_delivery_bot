@@ -30,8 +30,11 @@ const generateCartMessage = (products, totalPrice, value, order) => {
       default:
         status = 'Tugatilmagan';
     }
-    message += ` Buyurtma raqami: #${order.orderId}\n`;
-    message += ` Buyurtma holati: ${status}\n\n`;
+    message += `Buyurtmachi: ${order.user.name}\n`;
+    message += `Telefon raqami: ${order.user.phone}\n\n`;
+
+    message += `Buyurtma raqami: #${order.orderId}\n`;
+    message += `Buyurtma holati: ${status}\n\n`;
   }
 
   message += `🛒 ${value} mahsulotlar:\n\n`;
@@ -46,7 +49,7 @@ const generateCartMessage = (products, totalPrice, value, order) => {
     const productInlineKeyboard = [
       [
         {
-          text: `❌ Remove ${product.productId.title} from cart`,
+          text: `❌ ${product.productId.title}ni savatdan o\'chirish`,
           callback_data: `remove_cart-${product.productId._id}`,
         },
       ],
