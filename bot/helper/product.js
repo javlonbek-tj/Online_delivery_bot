@@ -26,7 +26,7 @@ const addProduct = async (chatId, category) => {
 const steps = {
   title: {
     action: 'new_product_price',
-    text: 'Mahsulot narhini kiriting',
+    text: 'Mahsulot narxini kiriting',
   },
   price: {
     action: 'new_product_img',
@@ -44,7 +44,7 @@ const addProductNext = async (chatId, value, slug) => {
 
   if (['title', 'text', 'price', 'img'].includes(slug)) {
     if (slug === 'price' && isNaN(value)) {
-      bot.sendMessage(chatId, 'Mahsulot narxi sonlarda kiriting');
+      bot.sendMessage(chatId, 'Mahsulot narxini sonlarda kiriting');
       return;
     }
     product[slug] = value;
@@ -83,7 +83,7 @@ const showProduct = async (chatId, id, quantity = 1, message_id = null, type = f
             text: '✏️ Tahrirlash',
             callback_data: `edit_product-${product._id}`,
           },
-          { text: '🗑 O`chirish', callback_data: `del_product-${product._id}` },
+          { text: '🗑️ O`chirish', callback_data: `del_product-${product._id}` },
         ]
       : [],
     [
@@ -148,7 +148,7 @@ const deleteProduct = async (chatId, id, sure) => {
       });
     }
   } else {
-    bot.sendMessage(chatId, 'Sizga mahsulot o`chirish mumkin emas!');
+    bot.sendMessage(chatId, '🙅‍♂️ Sizga mahsulot o`chirish mumkin emas!');
   }
 };
 
@@ -163,7 +163,7 @@ const editProductNext = async (chatId, value, slug, prodId) => {
   const editSteps = {
     title: {
       action: `edit_product_price_${prodId}`,
-      text: 'Mahsulot narhini kiriting',
+      text: 'Mahsulot narxini kiriting',
     },
     price: {
       action: `edit_product_img_${prodId}`,
@@ -179,7 +179,7 @@ const editProductNext = async (chatId, value, slug, prodId) => {
 
   if (['title', 'text', 'price', 'img'].includes(slug)) {
     if (slug === 'price' && isNaN(value)) {
-      bot.sendMessage(chatId, 'Mahsulot narxi sonlarda kiriting');
+      bot.sendMessage(chatId, 'Mahsulot narxini sonlarda kiriting');
       return;
     }
     product[slug] = value;

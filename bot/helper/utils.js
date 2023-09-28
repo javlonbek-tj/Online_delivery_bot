@@ -30,9 +30,10 @@ const generateCartMessage = (products, totalPrice, value, order) => {
       default:
         status = 'Tugatilmagan';
     }
-    message += `Buyurtmachi: ${order.user.name}\n`;
-    message += `Telefon raqami: ${order.user.phone}\n\n`;
-
+    if (!order.user.admin) {
+      message += `Buyurtmachi: ${order.user.name}\n`;
+      message += `Telefon raqami: ${order.user.phone}\n\n`;
+    }
     message += `Buyurtma raqami: #${order.orderId}\n`;
     message += `Buyurtma holati: ${status}\n\n`;
   }

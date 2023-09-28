@@ -1,6 +1,6 @@
 const { bot } = require('../bot');
 const User = require('../../model/user');
-const { adminKeyboard, userKeyboard } = require('../menu/keyboard');
+const { createKeyboard } = require('../menu/keyboard');
 
 const start = async msg => {
   const chatId = msg.from.id;
@@ -15,37 +15,40 @@ const start = async msg => {
       action: 'request_contact',
     });
     await newUser.save();
-    bot.sendMessage(chatId, `Assalomu alaykum hurmatli ${msg.from.first_name}.Iltimos telefon raqamingizni ulashing.`, {
-      reply_markup: {
-        keyboard: [
-          [
-            {
-              text: 'Telefon Raqam yuborish',
-              request_contact: true,
-            },
+    bot.sendMessage(
+      chatId,
+      `Assalomu alaykum hurmatli ${msg.from.first_name}.📲 Iltimos telefon raqamingizni ulashing.`,
+      {
+        reply_markup: {
+          keyboard: [
+            [
+              {
+                text: 'Telefon Raqam yuborish',
+                request_contact: true,
+              },
+            ],
           ],
-        ],
-        resize_keyboard: true,
+          resize_keyboard: true,
+        },
       },
-    });
+    );
   } else {
     await User.findByIdAndUpdate(isUserExists._id, {
       ...isUserExists,
       action: 'menu',
     });
-    bot.sendMessage(chatId, `Menyuni tanlang, ${isUserExists.admin ? 'Admin' : isUserExists.name}`, {
-      reply_markup: {
-        keyboard: isUserExists.admin ? adminKeyboard : userKeyboard,
-        resize_keyboard: true,
-      },
-    });
+    bot.sendMessage(
+      chatId,
+      `Menyuni tanlang, ${isUserExists.admin ? 'Admin' : isUserExists.name}`,
+      createKeyboard(isUserExists.admin),
+    );
   }
 };
 
 const requestContact = async msg => {
   const chatId = msg.from.id;
   if (!msg.contact) {
-    bot.sendMessage(chatId, 'Iltimos raqamni "Telefon raqamni yuborish tugmasini" bosing ulashing');
+    bot.sendMessage(chatId, '❌ Iltimos raqamni "Telefon raqamni yuborish" tugmasini bosish orqali ulashing');
   }
 
   if (msg.contact.phone_number) {
@@ -54,12 +57,7 @@ const requestContact = async msg => {
     user.admin = msg.contact.phone_number.includes('998900048114');
     user.action = 'menu';
     await User.findByIdAndUpdate(user._id, user, { new: true });
-    bot.sendMessage(chatId, `Menyuni tanlang, ${user.admin ? 'Admin' : user.name}`, {
-      reply_markup: {
-        keyboard: user.admin ? adminKeyboard : userKeyboard,
-        resize_keyboard: true,
-      },
-    });
+    bot.sendMessage(chatId, `Menyuni tanlang, ${user.admin ? 'Admin' : user.name}`, createKeyboard(user.admin));
   }
 };
 

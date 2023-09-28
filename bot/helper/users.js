@@ -1,6 +1,6 @@
 const { bot } = require('../bot');
 const User = require('../../model/user');
-const { userKeyboard, adminKeyboard } = require('../menu/keyboard');
+const { userKeyboard, adminKeyboard, createKeyboard } = require('../menu/keyboard');
 const Product = require('../../model/product');
 const Order = require('../../model/order');
 const { calculateTotalPrice, generateCartMessage } = require('./utils');
@@ -17,12 +17,7 @@ const getAllUsers = async msg => {
     });
     bot.sendMessage(chatId, `Foydalanuvchilar ro'yxati: ${list}`);
   } else {
-    bot.sendMessage(chatId, 'Sizga bunday so`rov mumkin emas', {
-      reply_markup: {
-        keyboard: userKeyboard,
-        resize_keyboard: true,
-      },
-    });
+    bot.sendMessage(chatId, '🙅‍♂️ Sizga bunday so`rov mumkin emas', createKeyboard(false));
   }
 };
 
@@ -108,10 +103,10 @@ const deleteFromCart = async (chatId, prodId) => {
   getCart(chatId);
 };
 
-const removeCart = async chatId => {
+const removeCart = async (chatId, afterOrder = null) => {
   const user = await User.findOne({ chatId });
   await user.clearCart();
-  bot.sendMessage(chatId, 'Savat tozalandi');
+  if (!afterOrder) bot.sendMessage(chatId, 'Savat tozalandi');
 };
 
 const unfinishedOrder = async chatId => {
@@ -133,7 +128,7 @@ const unfinishedOrder = async chatId => {
     },
     { new: true },
   );
-  bot.sendMessage(chatId, `Mahsulotni buyurtma qilish uchun dostavka manzilini jo'nating`, {
+  bot.sendMessage(chatId, `📍 Mahsulotni buyurtma qilish uchun yetkazib berish manzilini jo'nating`, {
     reply_markup: {
       keyboard: [
         [
@@ -179,16 +174,16 @@ const acceptedOrder = async (chatId, location) => {
       },
       { new: true },
     )
-      .populate(['products.productId'])
+      .populate(['products.productId', 'user'])
       .lean();
     const totalPrice = calculateTotalPrice(order.products);
     const { message } = generateCartMessage(order.products, totalPrice, 'Buyurtmadagi', order);
-    await removeCart(chatId);
-    await bot.sendMessage(chatId, `Buyurtmangiz qabul bo'ldi. Tez orada siz bilan bog'lanamiz.\n\n${message}`, {
-      reply_markup: {
-        remove_keyboard: true,
-      },
-    });
+    await removeCart(chatId, true);
+    await bot.sendMessage(
+      chatId,
+      `Buyurtmangiz qabul bo'ldi.⏰ Tez orada siz bilan bog'lanamiz.\n\n${message}`,
+      createKeyboard(false),
+    );
     await bot.sendMessage(
       admin.chatId,
       `Yangi buyurtma.\n\nBuyurtmachi: ${user.name}\nTelefon raqami: ${user.phone}\n\n${message}`,
@@ -197,17 +192,17 @@ const acceptedOrder = async (chatId, location) => {
           inline_keyboard: [
             [
               {
-                text: 'Bekor qilish',
+                text: '❌ Bekor qilish',
                 callback_data: `cancel_order-${order._id}`,
               },
               {
-                text: 'Qabul qilish',
+                text: '✅ Qabul qilish',
                 callback_data: `success_order-${order._id}`,
               },
             ],
             [
               {
-                text: 'Lokatsiyani olish',
+                text: '📍 Lokatsiyani olish',
                 callback_data: `map_order-${order._id}`,
               },
             ],
@@ -236,12 +231,8 @@ const changeOrder = async (chatId, id, status) => {
     if (status == 2) {
       await bot.sendMessage(
         order.user.chatId,
-        `Buyurtmangiz qabul qilindi.\nTez orada mahsulotingiz yetkazib beriladi.`,
-        {
-          reply_markup: {
-            remove_keyboard: true,
-          },
-        },
+        `Buyurtmangiz qabul qilindi.\n⏰ Tez orada mahsulotingiz yetkazib beriladi.`,
+        createKeyboard(false),
       );
       await bot.sendMessage(
         admin.chatId,
@@ -251,11 +242,11 @@ const changeOrder = async (chatId, id, status) => {
             inline_keyboard: [
               [
                 {
-                  text: 'Lokatsiyani olish',
+                  text: '📍 Lokatsiyani olish',
                   callback_data: `map_order-${order._id}`,
                 },
                 {
-                  text: 'Buyurtmani yakunlash',
+                  text: '🔚 Buyurtmani yakunlash',
                   callback_data: `accept_order-${order._id}`,
                 },
               ],
@@ -266,41 +257,26 @@ const changeOrder = async (chatId, id, status) => {
       return;
     }
     if (status == 3) {
-      msg = `#${order.orderId} raqamli buyurtmangiz bekor qilindi`;
-      await bot.sendMessage(order.user.chatId, msg, {
-        reply_markup: {
-          keyboard: userKeyboard,
-          resize_keyboard: true,
-        },
-      });
-      await bot.sendMessage(admin.chatId, `#${order.orderId} raqamli buyurtma bekor qilindi`, {
-        reply_markup: {
-          keyboard: adminKeyboard,
-          resize_keyboard: true,
-        },
-      });
+      msg = `❌ #${order.orderId} raqamli buyurtmangiz bekor qilindi`;
+      await bot.sendMessage(order.user.chatId, msg, createKeyboard(false));
+      await bot.sendMessage(
+        admin.chatId,
+        `❌ #${order.orderId} raqamli buyurtma bekor qilindi`,
+        createKeyboard(admin.admin),
+      );
       return;
     }
-    if (status == 4 && admin.action !== 'end_order') {
+    if (status == 4 && order.status != 4) {
       msg = `#${order.orderId} raqamli buyurtmangiz yakunlandi.`;
-      await bot.sendMessage(order.user.chatId, msg, {
-        reply_markup: {
-          keyboard: userKeyboard,
-          resize_keyboard: true,
-        },
-      });
-      await bot.sendMessage(admin.chatId, `#${order.orderId} raqamli buyurtma yakunlandi`, {
-        reply_markup: {
-          keyboard: adminKeyboard,
-          resize_keyboard: true,
-        },
-      });
+      await bot.sendMessage(order.user.chatId, msg, createKeyboard(false));
+      await bot.sendMessage(admin.chatId, `#${order.orderId} raqamli buyurtma yakunlandi`, createKeyboard(admin.admin));
       await Order.findByIdAndUpdate(id, { ...order, status: 4 });
-      await User.findByIdAndUpdate(admin._id, { ...order.user, action: 'end_order' });
+      await User.findByIdAndUpdate(order.user._id, { ...order.user, action: 'end_order' });
       return;
     }
+    bot.sendMessage(admin.chatId, 'Buyurtma yakunlangan', createKeyboard(admin.admin));
   } else {
-    bot.sendMessage(chatId, 'Sizga ushbu amal mumkin emas');
+    bot.sendMessage(chatId, '🙅‍♂️ Sizga ushbu amal mumkin emas');
   }
 };
 
@@ -329,7 +305,7 @@ const showLocation = async (chatId, _id) => {
       },
     });
   } else {
-    await bot.sendMessage(chatId, 'Sizga bu yerga kirish mumkin emas!');
+    await bot.sendMessage(chatId, '🙅‍♂️ Sizga bu yerga kirish mumkin emas!');
   }
 };
 
@@ -353,11 +329,11 @@ const getOrders = async chatId => {
               inline_keyboard: [
                 [
                   {
-                    text: 'Lokatsiyani olish',
+                    text: '📍 Lokatsiyani olish',
                     callback_data: `map_order-${order._id}`,
                   },
                   {
-                    text: 'Buyurtmani yakunlash',
+                    text: '🔚 Buyurtmani yakunlash',
                     callback_data: `accept_order-${order._id}`,
                   },
                 ],

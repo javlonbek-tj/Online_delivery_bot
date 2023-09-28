@@ -58,7 +58,7 @@ const getAllCategories = async (chatId, page = 1, message_id = null, type = fals
       { chat_id: chatId, message_id },
     );
   } else {
-    bot.sendMessage(chatId, 'Kategoriyalar ro`yhati', {
+    bot.sendMessage(chatId, '🗒 Kategoriyalar ro`yxati:', {
       reply_markup: {
         remove_keyboard: true,
         inline_keyboard,
@@ -74,7 +74,7 @@ const addCategory = async chatId => {
     await User.findByIdAndUpdate(user._id, { ...user, action: 'add_category' }, { new: true });
     bot.sendMessage(chatId, 'Yangi kategoriya nomini kiriting');
   } else {
-    bot.sendMessage(chatId, 'Sizga bunday so`rov mumkin emas!');
+    bot.sendMessage(chatId, '🙅‍♂️ Sizga bunday so`rov mumkin emas!');
   }
 };
 
@@ -90,7 +90,7 @@ const newCategory = async msg => {
     await User.findByIdAndUpdate(user._id, { ...user, action: 'category' });
     getAllCategories(chatId);
   } else {
-    bot.sendMessage(chatId, 'Sizga bunday so`rov mumkin emas!');
+    bot.sendMessage(chatId, '🙅‍♂️ Sizga bunday so`rov mumkin emas!');
   }
 };
 
@@ -138,11 +138,11 @@ const showCategory = async (chatId, id, page = 1, message_id = null) => {
     ],
     [
       {
-        text: 'Turkumni tahrirlash',
+        text: '✏️ Turkumni tahrirlash',
         callback_data: `edit_category-${category._id}`,
       },
       {
-        text: 'Turkumni o`chirish',
+        text: '🗑️Turkumni o`chirish',
         callback_data: `del_category-${category._id}`,
       },
     ],
@@ -161,7 +161,7 @@ const showCategory = async (chatId, id, page = 1, message_id = null) => {
     ...keyboards,
   ];
   if (message_id > 0) {
-    bot.editMessageText(`${category.title} turkumidagi mahsulotlar ro'yhati`, {
+    bot.editMessageText(`${category.title} turkumidagi mahsulotlar ro'yxati:`, {
       chat_id: chatId,
       message_id,
       reply_markup: {
@@ -170,7 +170,7 @@ const showCategory = async (chatId, id, page = 1, message_id = null) => {
       },
     });
   } else {
-    bot.sendMessage(chatId, `${category.title} turkumidagi mahsulotlar ro'yhati`, {
+    bot.sendMessage(chatId, `${category.title} turkumidagi mahsulotlar ro'yxati:`, {
       reply_markup: {
         remove_keyboard: true,
         inline_keyboard,
@@ -189,11 +189,11 @@ const removeCategory = async (chatId, id) => {
         inline_keyboard: [
           [
             {
-              text: 'Bekor qilish',
+              text: '❌ Bekor qilish',
               callback_data: `category_${category._id}`,
             },
             {
-              text: 'O`chirish',
+              text: '✅ O`chirish',
               callback_data: `del_category-${category._id}`,
             },
           ],
