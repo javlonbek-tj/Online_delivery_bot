@@ -2,6 +2,21 @@ const { bot } = require('../bot');
 const Product = require('../../model/product');
 const User = require('../../model/user');
 
+const steps = {
+  title: {
+    action: 'new_product_price',
+    text: 'Mahsulot narxini kiriting',
+  },
+  price: {
+    action: 'new_product_img',
+    text: 'Mahsulot rasmini kiriting',
+  },
+  img: {
+    action: 'new_product_text',
+    text: 'Mahsulot qisqa ma`lumotini kiriting',
+  },
+};
+
 const clear_draft_product = async () => {
   let products = await Product.find({ status: 0 }).lean();
   if (products) {
@@ -21,21 +36,6 @@ const addProduct = async (chatId, category) => {
   await newProduct.save();
   await User.findByIdAndUpdate(user._id, { ...user, action: 'new_product_title' }, { new: true });
   bot.sendMessage(chatId, `Yangi mahsulot nomini kiriting`);
-};
-
-const steps = {
-  title: {
-    action: 'new_product_price',
-    text: 'Mahsulot narxini kiriting',
-  },
-  price: {
-    action: 'new_product_img',
-    text: 'Mahsulot rasmini kiriting',
-  },
-  img: {
-    action: 'new_product_text',
-    text: 'Mahsulot qisqa ma`lumotini kiriting',
-  },
 };
 
 const addProductNext = async (chatId, value, slug) => {
