@@ -32,8 +32,8 @@ const User = new Schema(
 );
 
 User.methods.addToCart = function (prodId, quantity) {
-  const cartProductIndex = this.cart.items.findIndex(cp => {
-    return cp.productId.toString() === prodId.toString();
+  const cartProductIndex = this.cart.items.findIndex(cartp => {
+    return cartp.productId.toString() === prodId.toString();
   });
   const qty = quantity || 1;
   let newQuantity = qty;
