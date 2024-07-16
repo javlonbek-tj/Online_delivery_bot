@@ -23,13 +23,6 @@ const Order = new Schema(
     status: {
       type: Number,
       default: 0,
-      /*
-      0 - tugatilmagan buyurtma
-      1 - tekshiruvda
-      2 - qabul qilingan
-      3 - bekor qilingan
-      4 - yakunlangan
-    */
     },
   },
   {
